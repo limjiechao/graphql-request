@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resolveRequestDocument = void 0;
-const graphql_1 = require("graphql");
+const parser_js_1 = require("graphql/language/parser.js");
+const printer_js_1 = require("graphql/language/printer.js");
 /**
  * helpers
  */
@@ -17,7 +18,7 @@ const resolveRequestDocument = (document) => {
     if (typeof document === `string`) {
         let operationName = undefined;
         try {
-            const parsedDocument = (0, graphql_1.parse)(document);
+            const parsedDocument = (0, parser_js_1.parse)(document);
             operationName = extractOperationName(parsedDocument);
         }
         catch (err) {
@@ -26,7 +27,7 @@ const resolveRequestDocument = (document) => {
         return { query: document, operationName };
     }
     const operationName = extractOperationName(document);
-    return { query: (0, graphql_1.print)(document), operationName };
+    return { query: (0, printer_js_1.print)(document), operationName };
 };
 exports.resolveRequestDocument = resolveRequestDocument;
 //# sourceMappingURL=resolveRequestDocument.js.map

@@ -148,7 +148,7 @@ class GraphQLClient {
     async request(documentOrOptions, ...variablesAndRequestHeaders) {
         const [variables, requestHeaders] = variablesAndRequestHeaders;
         const requestOptions = parseRequestArgs(documentOrOptions, variables, requestHeaders);
-        const { headers, fetch = global.fetch, method = `POST`, requestMiddleware, responseMiddleware, ...fetchOptions } = this.requestConfig;
+        const { headers, fetch = globalThis.fetch, method = `POST`, requestMiddleware, responseMiddleware, ...fetchOptions } = this.requestConfig;
         const { url } = this;
         if (requestOptions.signal !== undefined) {
             fetchOptions.signal = requestOptions.signal;
@@ -200,7 +200,7 @@ class GraphQLClient {
                 ...resolveHeaders(batchRequestOptions.requestHeaders),
             },
             operationName: undefined,
-            fetch: this.requestConfig.fetch ?? global.fetch,
+            fetch: this.requestConfig.fetch ?? globalThis.fetch,
             method: this.requestConfig.method || `POST`,
             fetchOptions,
             middleware: this.requestConfig.requestMiddleware,

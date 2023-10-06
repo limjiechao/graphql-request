@@ -1,5 +1,6 @@
 import type { RequestDocument, Variables } from './types.js';
 import { ClientError } from './types.js';
+import { TypedDocumentNode } from '@graphql-typed-document-node/core';
 export type SocketHandler = {
     onInit?: <T>() => Promise<T>;
     onAcknowledged?: <A>(payload?: A) => Promise<void>;
@@ -23,8 +24,8 @@ export declare class GraphQLWebSocketClient {
         data: T;
         extensions?: E;
     }>;
-    request<T = any, V extends Variables = Variables>(document: RequestDocument, variables?: V): Promise<T>;
-    subscribe<T = any, V extends Variables = Variables, E = any>(document: RequestDocument, subscriber: GraphQLSubscriber<T, E>, variables?: V): UnsubscribeCallback;
+    request<T = any, V extends Variables = Variables>(document: RequestDocument | TypedDocumentNode<T, V>, variables?: V): Promise<T>;
+    subscribe<T = any, V extends Variables = Variables, E = any>(document: RequestDocument | TypedDocumentNode<T, V>, subscriber: GraphQLSubscriber<T, E>, variables?: V): UnsubscribeCallback;
     rawSubscribe<T = any, V extends Variables = Variables, E = any>(query: string, subscriber: GraphQLSubscriber<T, E>, variables?: V): UnsubscribeCallback;
     ping(payload: Variables): void;
     close(): void;

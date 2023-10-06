@@ -1,4 +1,5 @@
-import { parse, print } from 'graphql';
+import { parse } from 'graphql/language/parser.js';
+import { print } from 'graphql/language/printer.js';
 /**
  * helpers
  */

@@ -103,7 +103,7 @@ export type RawRequestExtendedOptions<V extends Variables = Variables> = {
 export interface BatchRequestsExtendedOptions<V extends Variables = Variables> extends BatchRequestsOptions<V> {
     url: string;
 }
-export type ResponseMiddleware = (response: GraphQLClientResponse<unknown> | Error) => void;
+export type ResponseMiddleware = (response: GraphQLClientResponse<unknown> | ClientError | Error) => void;
 export type RequestMiddleware<V extends Variables = Variables> = (request: RequestExtendedInit<V>) => RequestExtendedInit | Promise<RequestExtendedInit>;
 type RequestExtendedInit<V extends Variables = Variables> = RequestInit & {
     url: string;

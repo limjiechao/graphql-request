@@ -140,6 +140,6 @@ interface BatchRequests {
 export declare const gql: (chunks: TemplateStringsArray, ...variables: unknown[]) => string;
 export { GraphQLWebSocketClient } from './graphql-ws.js';
 export { resolveRequestDocument } from './resolveRequestDocument.js';
-export { BatchRequestDocument, batchRequests, BatchRequestsExtendedOptions, BatchRequestsOptions, ClientError, GraphQLClient, rawRequest, RawRequestExtendedOptions, RawRequestOptions, request, RequestDocument, RequestExtendedOptions, RequestMiddleware, RequestOptions, ResponseMiddleware, Variables, };
+export { BatchRequestDocument, batchRequests, BatchRequestsExtendedOptions, BatchRequestsOptions, ClientError, GraphQLClient, GraphQLClientRequestHeaders, rawRequest, RawRequestExtendedOptions, RawRequestOptions, request, RequestDocument, RequestExtendedOptions, RequestMiddleware, RequestOptions, ResponseMiddleware, Variables, };
 export default request;
 //# sourceMappingURL=index.d.ts.map
