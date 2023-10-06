@@ -671,6 +671,7 @@ export {
   BatchRequestsOptions,
   ClientError,
   GraphQLClient,
+  GraphQLClientRequestHeaders,
   rawRequest,
   RawRequestExtendedOptions,
   RawRequestOptions,
