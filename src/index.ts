@@ -249,7 +249,7 @@ class GraphQLClient {
 
     const {
       headers,
-      fetch = global.fetch,
+      fetch = globalThis.fetch,
       method = `POST`,
       requestMiddleware,
       responseMiddleware,
@@ -321,7 +321,7 @@ class GraphQLClient {
         ...resolveHeaders(batchRequestOptions.requestHeaders),
       },
       operationName: undefined,
-      fetch: this.requestConfig.fetch ?? global.fetch,
+      fetch: this.requestConfig.fetch ?? globalThis.fetch,
       method: this.requestConfig.method || `POST`,
       fetchOptions,
       middleware: this.requestConfig.requestMiddleware,
@@ -444,7 +444,7 @@ interface RawRequest {
 }
 
 // prettier-ignore
-type RawRequestArgs<V extends Variables> = 
+type RawRequestArgs<V extends Variables> =
   | [options: RawRequestExtendedOptions<V>, query?: string, ...variablesAndRequestHeaders: VariablesAndRequestHeadersArgs<V>]
   | [url: string,                           query?: string, ...variablesAndRequestHeaders: VariablesAndRequestHeadersArgs<V>]
 
