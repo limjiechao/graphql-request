@@ -1,3 +1,4 @@
+import { ACCEPT_HEADER, CONTENT_TYPE_GQL, CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON } from './constants.js'
 import { defaultJsonSerializer } from './defaultJsonSerializer.js'
 import { HeadersInstanceToPlainObject, uppercase } from './helpers.js'
 import {
@@ -11,7 +12,6 @@ import { resolveRequestDocument } from './resolveRequestDocument.js'
 import type {
   BatchRequestDocument,
   FetchOptions,
-  GraphQLClientRequestHeaders,
   GraphQLClientResponse,
   HTTPMethodInput,
   JsonSerializer,
@@ -37,10 +37,10 @@ import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
 /**
  * Convert the given headers configuration into a plain object.
  */
-const resolveHeaders = (headers?: GraphQLClientRequestHeaders): Record<string, string> => {
+const resolveHeaders = (headers?: HeadersInit): Record<string, string> => {
   let oHeaders: Record<string, string> = {}
   if (headers) {
-    if (typeof Headers !== `undefined` && headers instanceof Headers) {
+    if (headers instanceof Headers) {
       oHeaders = HeadersInstanceToPlainObject(headers)
     } else if (Array.isArray(headers)) {
       headers.forEach(([name, value]) => {
@@ -49,7 +49,7 @@ const resolveHeaders = (headers?: GraphQLClientRequestHeaders): Record<string, s
         }
       })
     } else {
-      oHeaders = headers as Record<string, string>
+      oHeaders = headers
     }
   }
 
@@ -110,7 +110,7 @@ const buildRequestConfig = <V extends Variables>(params: BuildRequestConfigParam
       })
       return acc
     },
-    []
+    [],
   )
 
   return `query=${encodeURIComponent(params_.jsonSerializer.stringify(payload))}`
@@ -124,7 +124,7 @@ interface RequestVerbParams<V extends Variables = Variables> {
   fetch: Fetch
   fetchOptions: FetchOptions
   variables?: V
-  headers?: GraphQLClientRequestHeaders
+  headers?: HeadersInit
   operationName?: string
   middleware?: RequestMiddleware<V>
 }
@@ -134,15 +134,18 @@ const createHttpMethodFetcher =
   async <V extends Variables>(params: RequestVerbParams<V>) => {
     const { url, query, variables, operationName, fetch, fetchOptions, middleware } = params
 
-    const headers = { ...params.headers }
+    const headers = new Headers(params.headers)
     let queryParams = ``
     let body = undefined
 
+    if (!headers.has(ACCEPT_HEADER)) {
+      headers.set(ACCEPT_HEADER, [CONTENT_TYPE_GQL, CONTENT_TYPE_JSON].join(`, `))
+    }
+
     if (method === `POST`) {
       body = createRequestBody(query, variables, operationName, fetchOptions.jsonSerializer)
-      if (typeof body === `string`) {
-        // @ts-expect-error todo
-        headers[`Content-Type`] = `application/json`
+      if (typeof body === `string` && !headers.has(CONTENT_TYPE_HEADER)) {
+        headers.set(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON)
       }
     } else {
       // @ts-expect-error todo needs ADT for TS to understand the different states
@@ -179,7 +182,10 @@ const createHttpMethodFetcher =
  * GraphQL Client.
  */
 class GraphQLClient {
-  constructor(private url: string, public readonly requestConfig: RequestConfig = {}) {}
+  constructor(
+    private url: string,
+    public readonly requestConfig: RequestConfig = {},
+  ) {}
 
   /**
    * Send a GraphQL query to the server.
@@ -192,6 +198,7 @@ class GraphQLClient {
 
     const {
       headers,
+      fetch = globalThis.fetch,
       method = `POST`,
       requestMiddleware,
       responseMiddleware,
@@ -294,11 +301,11 @@ class GraphQLClient {
    * Send GraphQL documents in batch to the server.
    */
   // prettier-ignore
-  batchRequests<T extends BatchResult, V extends Variables = Variables>(documents: BatchRequestDocument<V>[], requestHeaders?: GraphQLClientRequestHeaders): Promise<T>
+  batchRequests<T extends BatchResult, V extends Variables = Variables>(documents: BatchRequestDocument<V>[], requestHeaders?: HeadersInit): Promise<T>
   // prettier-ignore
   batchRequests<T extends BatchResult, V extends Variables = Variables>(options: BatchRequestsOptions<V>): Promise<T>
   // prettier-ignore
-  batchRequests<T extends BatchResult, V extends Variables = Variables>(documentsOrOptions: BatchRequestDocument<V>[] | BatchRequestsOptions<V>, requestHeaders?: GraphQLClientRequestHeaders): Promise<T> {
+  batchRequests<T extends BatchResult, V extends Variables = Variables>(documentsOrOptions: BatchRequestDocument<V>[] | BatchRequestsOptions<V>, requestHeaders?: HeadersInit): Promise<T> {
     const batchRequestOptions = parseBatchRequestArgs<V>(documentsOrOptions, requestHeaders)
     const { headers, ...fetchOptions } = this.requestConfig
 
@@ -340,7 +347,7 @@ class GraphQLClient {
       })
   }
 
-  setHeaders(headers: GraphQLClientRequestHeaders): GraphQLClient {
+  setHeaders(headers: HeadersInit): GraphQLClient {
     this.requestConfig.headers = headers
     return this
   }
@@ -375,7 +382,7 @@ const makeRequest = async <T = unknown, V extends Variables = Variables>(params:
   url: string
   query: string | string[]
   variables?: V
-  headers?: GraphQLClientRequestHeaders
+  headers?: HeadersInit
   operationName?: string
   fetch: Fetch
   method?: HTTPMethodInput
@@ -421,20 +428,20 @@ const makeRequest = async <T = unknown, V extends Variables = Variables>(params:
     throw new ClientError(
       // @ts-expect-error TODO
       { ...errorResult, status: response.status, headers: response.headers },
-      { query, variables }
+      { query, variables },
     )
   }
 }
 
 // prettier-ignore
 interface RawRequestMethod {
-  <T, V extends Variables = Variables>(query: string, variables?: V, requestHeaders?: GraphQLClientRequestHeaders): Promise<GraphQLClientResponse<T>>
+  <T, V extends Variables = Variables>(query: string, variables?: V, requestHeaders?: HeadersInit): Promise<GraphQLClientResponse<T>>
   <T, V extends Variables = Variables>(options: RawRequestOptions<V>): Promise<GraphQLClientResponse<T>>
 }
 
 // prettier-ignore
 type RawRequestMethodArgs<V extends Variables> =
-  | [query: string, variables?: V, requestHeaders?: GraphQLClientRequestHeaders]
+  | [query: string, variables?: V, requestHeaders?: HeadersInit]
   | [RawRequestOptions<V>]
 
 // prettier-ignore
@@ -560,12 +567,12 @@ type BatchResult = [Result, ...Result[]]
 
 // prettier-ignore
 interface BatchRequests {
-  <T extends BatchResult, V extends Variables = Variables>(url: string, documents: BatchRequestDocument<V>[], requestHeaders?: GraphQLClientRequestHeaders): Promise<T>
+  <T extends BatchResult, V extends Variables = Variables>(url: string, documents: BatchRequestDocument<V>[], requestHeaders?: HeadersInit): Promise<T>
   <T extends BatchResult, V extends Variables = Variables>(options: BatchRequestsExtendedOptions<V>): Promise<T>
 }
 
 type BatchRequestsArgs =
-  | [url: string, documents: BatchRequestDocument[], requestHeaders?: GraphQLClientRequestHeaders]
+  | [url: string, documents: BatchRequestDocument[], requestHeaders?: HeadersInit]
   | [options: BatchRequestsExtendedOptions]
 
 const parseBatchRequestsArgsExtended = (args: BatchRequestsArgs): BatchRequestsExtendedOptions => {
@@ -585,7 +592,7 @@ const createRequestBody = (
   query: string | string[],
   variables?: Variables | Variables[],
   operationName?: string,
-  jsonSerializer?: JsonSerializer
+  jsonSerializer?: JsonSerializer,
 ): string => {
   const jsonSerializer_ = jsonSerializer ?? defaultJsonSerializer
   if (!Array.isArray(query)) {
@@ -602,7 +609,7 @@ const createRequestBody = (
       acc.push({ query: currentQuery, variables: variables ? variables[index] : undefined })
       return acc
     },
-    []
+    [],
   )
 
   return jsonSerializer_.stringify(payload)
@@ -610,31 +617,26 @@ const createRequestBody = (
 
 const getResult = async (
   response: Response,
-  jsonSerializer: JsonSerializer
+  jsonSerializer: JsonSerializer,
 ): Promise<
   | { data: object; errors: undefined }[]
   | { data: object; errors: undefined }
   | { data: undefined; errors: object }
   | { data: undefined; errors: object[] }
 > => {
-  let contentType: string | undefined
+  const contentType = response.headers.get(CONTENT_TYPE_HEADER)
 
-  response.headers.forEach((value, key) => {
-    if (key.toLowerCase() === `content-type`) {
-      contentType = value
-    }
-  })
-
-  if (
-    contentType &&
-    (contentType.toLowerCase().startsWith(`application/json`) ||
-      contentType.toLowerCase().startsWith(`application/graphql+json`) ||
-      contentType.toLowerCase().startsWith(`application/graphql-response+json`))
-  ) {
+  if (contentType && isJsonContentType(contentType)) {
     return jsonSerializer.parse(await response.text()) as any
   } else {
     return response.text() as any
   }
+}
+
+const isJsonContentType = (contentType: string) => {
+  const contentTypeLower = contentType.toLowerCase()
+
+  return contentTypeLower.includes(CONTENT_TYPE_GQL) || contentTypeLower.includes(CONTENT_TYPE_JSON)
 }
 
 const callOrIdentity = <T>(value: MaybeLazy<T>) => {
@@ -658,7 +660,7 @@ const callOrIdentity = <T>(value: MaybeLazy<T>) => {
 export const gql = (chunks: TemplateStringsArray, ...variables: unknown[]): string => {
   return chunks.reduce(
     (acc, chunk, index) => `${acc}${chunk}${index in variables ? String(variables[index]) : ``}`,
-    ``
+    ``,
   )
 }
 
@@ -671,7 +673,6 @@ export {
   BatchRequestsOptions,
   ClientError,
   GraphQLClient,
-  GraphQLClientRequestHeaders,
   rawRequest,
   RawRequestExtendedOptions,
   RawRequestOptions,
